@@ -94,16 +94,54 @@
     <p class="privacy">Es una demostración: al enviar, los datos no se guardan ni se comparten.</p>
   </main>
   <script>
+    // Pega aquí los datos de tu proyecto Supabase (Project Settings → API).
+    // La clave "anon/publishable" es pública por diseño; la seguridad la da setup.sql.
+    const SUPABASE_URL = '';
+    const SUPABASE_KEY = '';
+
     const form = document.querySelector('#test-form');
     const confirmation = document.querySelector('#confirmation');
+    const privacy = document.querySelector('.privacy');
+    const submitButton = form.querySelector('button');
+    const saving = Boolean(SUPABASE_URL && SUPABASE_KEY);
 
-    form.addEventListener('submit', (event) => {
+    if (saving) {
+      privacy.textContent = 'Al enviar, tu nombre y edad se guardarán para fines de prueba.';
+    }
+
+    form.addEventListener('submit', async (event) => {
       event.preventDefault();
       if (!form.reportValidity()) return;
 
       const name = form.elements.name.value.trim();
-      confirmation.textContent = `¡Gracias, ${name}! El formulario se envió correctamente.`;
+      const age = Number(form.elements.age.value);
       confirmation.hidden = false;
+      confirmation.style.color = '';
+
+      if (saving) {
+        submitButton.disabled = true;
+        try {
+          const response = await fetch(`${SUPABASE_URL}/rest/v1/respuestas`, {
+            method: 'POST',
+            headers: {
+              apikey: SUPABASE_KEY,
+              Authorization: `Bearer ${SUPABASE_KEY}`,
+              'Content-Type': 'application/json',
+              Prefer: 'return=minimal'
+            },
+            body: JSON.stringify({ nombre: name, edad: age })
+          });
+          if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        } catch (error) {
+          confirmation.textContent = 'No se pudo guardar. Inténtalo de nuevo.';
+          confirmation.style.color = '#b42318';
+          submitButton.disabled = false;
+          return;
+        }
+        submitButton.disabled = false;
+      }
+
+      confirmation.textContent = `¡Gracias, ${name}! El formulario se envió correctamente.`;
       form.reset();
     });
   </script>
