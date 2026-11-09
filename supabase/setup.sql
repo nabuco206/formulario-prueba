@@ -1,13 +1,12 @@
--- Ejecutar una vez en Supabase: SQL Editor → New query → Run
-create table public.respuestas (
-  id bigint generated always as identity primary key,
-  nombre text not null check (char_length(nombre) between 1 and 100),
-  edad int not null check (edad between 0 and 120),
-  creado_en timestamptz not null default now()
-);
+-- Para la tabla public.tbl_personas existente: ejecutar en SQL Editor.
+-- Revisa las políticas existentes: otras políticas pueden permitir leer o modificar datos.
+alter table public.tbl_personas enable row level security;
 
-alter table public.respuestas enable row level security;
+grant insert (nombre, rut) on public.tbl_personas to anon;
 
--- El público solo puede insertar; no puede leer, editar ni borrar.
-create policy "insertar_publico" on public.respuestas
-  for insert to anon with check (true);
+create policy "formulario_insertar_personas" on public.tbl_personas
+  for insert to anon
+  with check (
+    char_length(btrim(nombre)) between 1 and 100
+    and char_length(btrim(rut)) between 1 and 30
+  );
