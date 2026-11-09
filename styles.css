@@ -16,6 +16,12 @@ button { padding: 8px 14px; border: 0; background: #245cdb; color: white; font-w
 button:hover { background: #174bbd; } button:disabled { opacity: .6; cursor: wait; }
 button.secondary { background: white; color: #173c70; }
 button.danger { background: #a42727; min-height: 34px; }
+a { color: #174bbd; }
+nav { display: flex; align-items: center; gap: 18px; }
+nav a { color: white; }
+.status { font-size: 1.15rem; font-weight: 750; color: #21643b; }
+.status.overdue { color: #a42620; }
+.history-heading { margin-top: 28px; }
 input:focus-visible, select:focus-visible, button:focus-visible { outline: 3px solid #93b7ff; outline-offset: 2px; }
 .heading { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; }
 .heading label { display: flex; align-items: center; gap: 8px; }.heading input { width: 110px; }

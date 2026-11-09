@@ -31,6 +31,27 @@ desde el SQL Editor. No expongas contraseñas ni claves `service_role` o secreta
 Revisa las políticas de la antigua tabla `tbl_personas` por separado: este
 script no las modifica.
 
+## Acceso privado para vecinos
+
+1. Ejecuta una sola vez `supabase/portal_vecinos.sql` en SQL Editor después de
+   instalar `cuotas.sql`. Añade el índice RUT normalizado y una función que
+   solo devuelve los pagos del usuario autenticado cuyo RUT coincide con su
+   inicio de sesión.
+2. Para cada vecino, crea un usuario en **Authentication > Users > Add user**.
+   Usa como correo sintético `rut` seguido del RUT en mayúsculas sin puntos,
+   guion ni espacios, seguido de `@socios.invalid`. Por ejemplo, el RUT
+   `12.345.678-K` se registra como `rut12345678k@socios.invalid`. Activa la
+   confirmación automática y asigna una clave personal al vecino.
+3. En `vecinos.html`, el vecino ingresa su RUT normal (con o sin puntos y guion)
+   y la clave que le entregó la directiva. La aplicación normaliza el RUT para
+   iniciar sesión. No es posible restablecer estas claves por correo: la
+   directiva debe restablecerlas desde Authentication.
+
+El correo sintético no recibe mensajes. Nunca uses esta modalidad para contraseñas
+reutilizadas. La directiva debe entregar cada clave en privado y no compartir el
+RUT ni los pagos de un vecino con otra persona. El RUT por sí solo no permite
+consultar información.
+
 ## Funcionamiento
 
 - Los importes son pesos chilenos enteros. Cada año tiene una cuota mensual

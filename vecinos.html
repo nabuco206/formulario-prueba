@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Mis cuotas · Junta de vecinos</title>
+  <link rel="stylesheet" href="styles.css">
+  <script src="vecino.js" defer></script>
+</head>
+<body>
+  <header>
+    <div><h1>Mis cuotas</h1><p>Consulta privada para vecinos</p></div>
+    <nav><a href="./">Tesorería</a><button id="logout" class="secondary" hidden>Cerrar sesión</button></nav>
+  </header>
+  <main>
+    <p id="message" role="status" aria-live="polite" hidden></p>
+    <section id="login-section" class="card">
+      <h2>Consultar mis pagos</h2>
+      <p>Ingresa tu RUT y la clave personal que te entregó la directiva.</p>
+      <form id="login-form">
+        <label>RUT<input name="rut" type="text" autocomplete="username" maxlength="30" required></label>
+        <label>Clave personal<input name="password" type="password" autocomplete="current-password" required></label>
+        <button type="submit">Ingresar</button>
+      </form>
+      <p>Si no tienes clave o necesitas restablecerla, comunícate con la directiva.</p>
+    </section>
+    <section id="account" class="card" hidden>
+      <h2 id="welcome"></h2>
+      <p id="status" class="status"></p>
+      <p id="balance"></p>
+      <div class="heading">
+        <h2>Mis cuotas por año</h2>
+        <label>Año<select id="year"></select></label>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Mes</th><th>Cuota</th><th>Pagado</th><th>Saldo</th><th>Estado</th></tr></thead>
+          <tbody id="dues"></tbody>
+        </table>
+      </div>
+      <h2 class="history-heading">Mis pagos</h2>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Fecha</th><th>Monto</th><th>Aplicado a</th><th>Estado</th></tr></thead>
+          <tbody id="payments"></tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+</body>
+</html>
