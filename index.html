@@ -3,152 +3,65 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="Formulario público de prueba para nombre y RUT.">
-  <title>Formulario de prueba</title>
-  <style>
-    :root {
-      color-scheme: light;
-      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-      color: #172033;
-      background: #f3f6fb;
-    }
-
-    * { box-sizing: border-box; }
-
-    body {
-      min-height: 100vh;
-      margin: 0;
-      display: grid;
-      place-items: center;
-      padding: 24px;
-    }
-
-    main {
-      width: min(100%, 440px);
-      padding: 32px;
-      border: 1px solid #e1e7f0;
-      border-radius: 16px;
-      background: #fff;
-      box-shadow: 0 12px 36px rgb(23 32 51 / 8%);
-    }
-
-    h1 { margin: 0 0 8px; font-size: 1.65rem; }
-    .intro { margin: 0 0 24px; color: #566176; line-height: 1.5; }
-    .field { margin-bottom: 18px; }
-    label { display: block; margin-bottom: 7px; font-weight: 650; }
-
-    input {
-      width: 100%;
-      min-height: 46px;
-      padding: 10px 12px;
-      border: 1px solid #bac5d6;
-      border-radius: 8px;
-      font: inherit;
-    }
-
-    input:focus-visible, button:focus-visible {
-      outline: 3px solid #93b7ff;
-      outline-offset: 2px;
-    }
-
-    button {
-      width: 100%;
-      min-height: 46px;
-      border: 0;
-      border-radius: 8px;
-      background: #245cdb;
-      color: #fff;
-      font: inherit;
-      font-weight: 650;
-      cursor: pointer;
-    }
-
-    button:hover { background: #174bbd; }
-    .notice { margin: 16px 0 0; color: #21643b; line-height: 1.5; }
-    .privacy { margin: 18px 0 0; color: #667085; font-size: .88rem; line-height: 1.5; }
-    [hidden] { display: none; }
-
-    @media (max-width: 480px) {
-      main { padding: 24px; }
-    }
-  </style>
+  <title>Cuotas · Junta de vecinos</title>
+  <link rel="stylesheet" href="styles.css">
+  <script src="app.js" defer></script>
 </head>
 <body>
+  <header><div><h1>Control de cuotas</h1><p>Junta de vecinos</p></div><button id="logout" class="secondary" hidden>Cerrar sesión</button></header>
   <main>
-    <h1>Formulario de prueba</h1>
-    <p class="intro">Completa tus datos para probar el formulario.</p>
-
-    <form id="test-form">
-      <div class="field">
-        <label for="name">Nombre</label>
-        <input id="name" name="name" type="text" autocomplete="name" maxlength="100" required>
+    <p id="message" role="status" aria-live="polite" hidden></p>
+    <section id="login-section" class="card">
+      <h2>Ingreso de tesorería</h2>
+      <p>Acceso exclusivo para personas autorizadas.</p>
+      <form id="login-form">
+        <label>Correo electrónico<input name="email" type="email" autocomplete="username" required></label>
+        <label>Contraseña<input name="password" type="password" autocomplete="current-password" required></label>
+        <button type="submit">Ingresar</button>
+      </form>
+    </section>
+    <div id="app" hidden>
+      <div class="grid">
+        <section class="card">
+          <h2>Agregar vecino</h2>
+          <form id="neighbor-form">
+            <label>Nombre<input name="nombre" maxlength="100" required></label>
+            <label>RUT<input name="rut" maxlength="30" required></label>
+            <label>Mes de inicio de cobro<input name="inicio" type="month" min="2000-01" max="2100-12" required></label>
+            <button type="submit">Guardar vecino</button>
+          </form>
+        </section>
+        <section class="card">
+          <h2>Cuota mensual por año</h2>
+          <form id="fee-form">
+            <label>Año<input name="anio" type="number" min="2000" max="2100" required></label>
+            <label>Monto mensual en pesos<input name="monto" type="number" min="1" max="1000000000" step="1" required></label>
+            <button type="submit">Guardar monto</button>
+          </form>
+          <p>El monto de un año no se puede cambiar después de registrar pagos para ese año.</p>
+        </section>
+        <section class="card">
+          <h2>Registrar pago</h2>
+          <form id="payment-form">
+            <label>Vecino<select name="vecino" required></select></label>
+            <label>Monto en pesos<input name="monto" type="number" min="1" max="1000000000" step="1" required></label>
+            <label>Fecha de pago<input name="fecha" type="date" required></label>
+            <button type="submit">Registrar pago</button>
+          </form>
+          <p>Se aplica a las cuotas pendientes más antiguas. Configura los años necesarios antes de aceptar pagos adelantados.</p>
+        </section>
       </div>
-      <div class="field">
-        <label for="rut">RUT</label>
-        <input id="rut" name="rut" type="text" maxlength="30" required>
-      </div>
-      <button type="submit">Enviar</button>
-      <p id="confirmation" class="notice" role="status" aria-live="polite" hidden></p>
-    </form>
-
-    <p class="privacy">Al enviar, tu nombre y RUT se guardarán en la base de datos.</p>
+      <section class="card">
+        <div class="heading"><h2>Estado por año</h2><label>Año<input id="year" type="number" min="2000" max="2100" required></label></div>
+        <p id="year-info"></p>
+        <div class="table-wrap"><table><thead><tr><th>Vecino</th><th>RUT</th><th>Mes</th><th>Cuota</th><th>Pagado</th><th>Saldo</th><th>Estado</th></tr></thead><tbody id="dues"></tbody></table></div>
+      </section>
+      <section class="card">
+        <h2>Historial de pagos</h2>
+        <p>Incluye pagos hechos en el año seleccionado o aplicados a sus cuotas. Los pagos anulados permanecen en el historial.</p>
+        <div class="table-wrap"><table><thead><tr><th>Fecha</th><th>Vecino</th><th>Monto</th><th>Aplicación</th><th>Estado</th><th>Acción</th></tr></thead><tbody id="payments"></tbody></table></div>
+      </section>
+    </div>
   </main>
-  <script>
-    // Usa solo la URL del proyecto y la clave pública anon/publishable.
-    const SUPABASE_URL = 'https://xzjootgfnstlxxdumhsl.supabase.co';
-    const SUPABASE_KEY = 'sb_publishable_4xGqOhRfPpMpyAUbgjuOUQ_QxYwdWo1';
-
-    const form = document.querySelector('#test-form');
-    const confirmation = document.querySelector('#confirmation');
-    const submitButton = form.querySelector('button');
-    const nameInput = document.querySelector('#name');
-    const rutInput = document.querySelector('#rut');
-
-    form.addEventListener('submit', async (event) => {
-      event.preventDefault();
-      for (const input of [nameInput, rutInput]) {
-        input.setCustomValidity(input.value.trim() ? '' : 'Completa este campo.');
-      }
-      if (!form.reportValidity()) return;
-
-      const name = nameInput.value.trim();
-      const rut = rutInput.value.trim();
-      confirmation.hidden = false;
-      confirmation.style.color = '';
-
-      if (!SUPABASE_URL || !SUPABASE_KEY) {
-        confirmation.textContent = 'El formulario aún no está conectado a la base de datos.';
-        confirmation.style.color = '#b42318';
-        return;
-      }
-
-      submitButton.disabled = true;
-      try {
-        const response = await fetch(`${SUPABASE_URL.replace(/\/$/, '')}/rest/v1/tbl_personas`, {
-          method: 'POST',
-          headers: {
-            apikey: SUPABASE_KEY,
-            ...(SUPABASE_KEY.startsWith('eyJ') ? { Authorization: `Bearer ${SUPABASE_KEY}` } : {}),
-            'Content-Type': 'application/json',
-            Prefer: 'return=minimal'
-          },
-          body: JSON.stringify({ nombre: name, rut })
-        });
-        if (!response.ok) throw new Error(`HTTP ${response.status}`);
-        confirmation.textContent = 'Los datos se guardaron correctamente.';
-        form.reset();
-      } catch (error) {
-        console.error('Error al guardar el formulario:', error);
-        confirmation.textContent = 'No se pudo guardar. Inténtalo de nuevo.';
-        confirmation.style.color = '#b42318';
-      } finally {
-        submitButton.disabled = false;
-      }
-    });
-
-    for (const input of [nameInput, rutInput]) {
-      input.addEventListener('input', () => input.setCustomValidity(''));
-    }
-  </script>
 </body>
 </html>

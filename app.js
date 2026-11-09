@@ -1,0 +1,271 @@
+'use strict';
+
+const SUPABASE_URL = 'https://xzjootgfnstlxxdumhsl.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_4xGqOhRfPpMpyAUbgjuOUQ_QxYwdWo1';
+const $ = (selector) => document.querySelector(selector);
+const message = $('#message');
+const yearInput = $('#year');
+const money = new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP', maximumFractionDigits: 0 });
+const monthNames = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+let session = null;
+let refreshPromise = null;
+let loadVersion = 0;
+
+function showMessage(text, error = false) {
+  message.textContent = text;
+  message.classList.toggle('error', error);
+  message.hidden = false;
+}
+
+function setAuthenticated(authenticated) {
+  $('#login-section').hidden = authenticated;
+  $('#app').hidden = !authenticated;
+  $('#logout').hidden = !authenticated;
+  if (!authenticated) {
+    loadVersion++;
+    $('#dues').replaceChildren();
+    $('#payments').replaceChildren();
+    $('#payment-form').elements.vecino.replaceChildren();
+    $('#year-info').textContent = '';
+  }
+}
+
+async function request(path, body, token) {
+  const headers = { apikey: SUPABASE_KEY, 'Content-Type': 'application/json' };
+  if (token) headers.Authorization = `Bearer ${token}`;
+  let response;
+  try {
+    response = await fetch(`${SUPABASE_URL}${path}`, {
+      method: 'POST', headers, body: JSON.stringify(body)
+    });
+  } catch {
+    throw new Error('No se pudo confirmar la operación. Revisa la conexión y consulta el historial antes de volver a registrar un pago.');
+  }
+  const text = await response.text();
+  let data;
+  try {
+    data = text ? JSON.parse(text) : null;
+  } catch {
+    throw new Error('El servidor devolvió una respuesta inesperada.');
+  }
+  if (!response.ok) {
+    throw new Error(data?.msg || data?.message || data?.error_description || `Error del servidor (${response.status}).`);
+  }
+  return data;
+}
+
+function rememberSession(data) {
+  if (!data?.access_token || !data?.refresh_token || !data?.expires_in) {
+    throw new Error('La respuesta de autenticación no contiene una sesión válida.');
+  }
+  session = { access: data.access_token, refresh: data.refresh_token, expires: Date.now() + data.expires_in * 1000 };
+}
+
+async function accessToken() {
+  if (!session) throw new Error('Inicia sesión nuevamente.');
+  if (Date.now() < session.expires - 60000) return session.access;
+  if (!refreshPromise) {
+    const previous = session;
+    refreshPromise = request('/auth/v1/token?grant_type=refresh_token', { refresh_token: previous.refresh })
+      .then((data) => {
+        if (session !== previous) throw new Error('La sesión terminó.');
+        rememberSession(data);
+        return session.access;
+      })
+      .catch(() => {
+        session = null;
+        setAuthenticated(false);
+        throw new Error('La sesión venció. Inicia sesión nuevamente.');
+      })
+      .finally(() => { refreshPromise = null; });
+  }
+  return refreshPromise;
+}
+
+async function rpc(name, parameters) {
+  return request(`/rest/v1/rpc/${name}`, parameters, await accessToken());
+}
+
+function cell(row, value) {
+  const td = document.createElement('td');
+  td.textContent = value;
+  row.append(td);
+  return td;
+}
+
+function render(data) {
+  const select = $('#payment-form').elements.vecino;
+  const selected = select.value;
+  select.replaceChildren(new Option('Selecciona un vecino', ''));
+  const names = new Map();
+  for (const neighbor of data.vecinos) {
+    names.set(neighbor.id, neighbor.nombre);
+    select.add(new Option(`${neighbor.nombre} · ${neighbor.rut}`, neighbor.id));
+  }
+  select.value = [...select.options].some(option => option.value === selected) ? selected : '';
+
+  const dues = $('#dues');
+  dues.replaceChildren();
+  let total = 0;
+  for (const due of data.cuotas) {
+    const neighbor = data.vecinos.find(item => item.id === due.vecino_id);
+    const row = document.createElement('tr');
+    const balance = due.monto === null ? null : due.monto - due.pagado;
+    if (balance !== null) total += balance;
+    cell(row, neighbor.nombre);
+    cell(row, neighbor.rut);
+    cell(row, monthNames[Number(due.mes.slice(5, 7)) - 1]);
+    cell(row, due.monto === null ? 'Sin configurar' : money.format(due.monto));
+    cell(row, money.format(due.pagado));
+    cell(row, balance === null ? '—' : money.format(balance));
+    cell(row, balance === null ? 'Sin configurar' : balance === 0 ? 'Pagada' : due.pagado > 0 ? 'Parcial' : 'Pendiente');
+    dues.append(row);
+  }
+  const fee = data.aranceles.find(item => item.anio === Number(yearInput.value));
+  $('#year-info').textContent = fee
+    ? `Cuota mensual: ${money.format(fee.monto)}. Saldo del año completo (incluye meses futuros): ${money.format(total)}.`
+    : 'No se ha configurado la cuota mensual para este año.';
+
+  const payments = $('#payments');
+  payments.replaceChildren();
+  for (const payment of data.pagos) {
+    const row = document.createElement('tr');
+    cell(row, payment.fecha);
+    cell(row, names.get(payment.vecino_id) || 'Vecino no encontrado');
+    cell(row, money.format(payment.monto));
+    cell(row, payment.aplicaciones.map(item => `${item.mes.slice(0, 7)}: ${money.format(item.monto)}`).join(', '));
+    cell(row, payment.anulado_en ? `Anulado: ${payment.motivo_anulacion}` : 'Registrado');
+    const action = cell(row, '');
+    if (!payment.anulado_en) {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'danger';
+      button.textContent = 'Anular';
+      button.addEventListener('click', () => cancelPayment(payment.id, button));
+      action.append(button);
+    }
+    payments.append(row);
+  }
+}
+
+async function load() {
+  if (!yearInput.reportValidity()) return;
+  const version = ++loadVersion;
+  const data = await rpc('cuotas_datos', { p_anio: Number(yearInput.value) });
+  if (version === loadVersion && session) render(data);
+}
+
+async function withBusy(form, operation) {
+  const button = form.querySelector('button[type="submit"]');
+  button.disabled = true;
+  message.hidden = true;
+  try {
+    await operation();
+  } catch (error) {
+    showMessage(error.message, true);
+  } finally {
+    button.disabled = false;
+  }
+}
+
+async function updateAfterSave(text) {
+  try {
+    await load();
+    showMessage(text);
+  } catch (error) {
+    showMessage(`${text} No se pudo actualizar la pantalla: ${error.message}`, true);
+  }
+}
+
+$('#login-form').addEventListener('submit', event => {
+  event.preventDefault();
+  const form = event.currentTarget;
+  withBusy(form, async () => {
+    const credentials = { email: form.elements.email.value.trim(), password: form.elements.password.value };
+    const data = await request('/auth/v1/token?grant_type=password', credentials);
+    rememberSession(data);
+    form.elements.password.value = '';
+    try {
+      await load();
+    } catch (error) {
+      session = null;
+      setAuthenticated(false);
+      throw error;
+    }
+    setAuthenticated(true);
+    showMessage('Sesión iniciada.');
+  });
+});
+
+$('#logout').addEventListener('click', async () => {
+  const previous = session;
+  session = null;
+  setAuthenticated(false);
+  message.hidden = true;
+  if (!previous) return;
+  try {
+    await request('/auth/v1/logout', {}, previous.access);
+    showMessage('Sesión cerrada.');
+  } catch (error) {
+    showMessage(`La sesión se cerró en esta página, pero no se pudo cerrar en el servidor: ${error.message}`, true);
+  }
+});
+
+$('#neighbor-form').addEventListener('submit', event => {
+  event.preventDefault();
+  const form = event.currentTarget;
+  withBusy(form, async () => {
+    await rpc('cuotas_crear_vecino', {
+      p_nombre: form.elements.nombre.value.trim(), p_rut: form.elements.rut.value.trim(),
+      p_inicio: `${form.elements.inicio.value}-01`
+    });
+    form.reset();
+    await updateAfterSave('Vecino agregado.');
+  });
+});
+
+$('#fee-form').addEventListener('submit', event => {
+  event.preventDefault();
+  const form = event.currentTarget;
+  withBusy(form, async () => {
+    await rpc('cuotas_guardar_arancel', { p_anio: Number(form.elements.anio.value), p_monto: Number(form.elements.monto.value) });
+    yearInput.value = form.elements.anio.value;
+    await updateAfterSave('Monto anual guardado.');
+  });
+});
+
+$('#payment-form').addEventListener('submit', event => {
+  event.preventDefault();
+  const form = event.currentTarget;
+  withBusy(form, async () => {
+    await rpc('cuotas_registrar_pago', {
+      p_vecino: Number(form.elements.vecino.value), p_monto: Number(form.elements.monto.value),
+      p_fecha: form.elements.fecha.value
+    });
+    form.elements.monto.value = '';
+    await updateAfterSave('Pago registrado.');
+  });
+});
+
+async function cancelPayment(id, button) {
+  const reason = prompt('Indica el motivo de la anulación:');
+  if (reason === null) return;
+  if (!reason.trim()) { showMessage('Debes indicar un motivo de anulación.', true); return; }
+  button.disabled = true;
+  try {
+    await rpc('cuotas_anular_pago', { p_pago: id, p_motivo: reason });
+    await updateAfterSave('Pago anulado.');
+  } catch (error) {
+    showMessage(error.message, true);
+  } finally {
+    button.disabled = false;
+  }
+}
+
+yearInput.addEventListener('change', () => {
+  load().catch(error => showMessage(error.message, true));
+});
+const today = new Date();
+yearInput.value = today.getFullYear();
+$('#fee-form').elements.anio.value = today.getFullYear();
+$('#payment-form').elements.fecha.value = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
