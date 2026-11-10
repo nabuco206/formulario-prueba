@@ -1,6 +1,8 @@
 -- Ejecutar después de instalar cuotas.sql; también actualiza instalaciones anteriores.
 begin;
 
+alter table cuotas_privado.pagos add column if not exists comprobante text;
+
 create schema if not exists extensions;
 create extension if not exists pgcrypto with schema extensions;
 do $$
@@ -145,6 +147,7 @@ begin
         'id', pg.id,
         'monto', pg.monto,
         'fecha', pg.fecha,
+        'comprobante', pg.comprobante,
         'anulado_en', pg.anulado_en,
         'motivo_anulacion', pg.motivo_anulacion,
         'aplicaciones', coalesce((

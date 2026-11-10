@@ -106,6 +106,7 @@ async function loadYear(year, expectedSession) {
     const row = document.createElement('tr');
     const values = [
       payment.fecha,
+      payment.comprobante || '—',
       money.format(payment.monto),
       payment.aplicaciones.map(item => `${item.mes.slice(0, 7)}: ${money.format(item.monto)}`).join(', '),
       payment.anulado_en ? `Anulado: ${payment.motivo_anulacion}` : 'Registrado'

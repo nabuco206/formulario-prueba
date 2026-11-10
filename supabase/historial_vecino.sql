@@ -1,6 +1,8 @@
 -- Ejecutar después de cuotas.sql, también en instalaciones existentes.
 begin;
 
+alter table cuotas_privado.pagos add column if not exists comprobante text;
+
 create or replace function public.cuotas_historial_vecino(p_vecino bigint) returns jsonb
 language plpgsql security definer set search_path = '' as $$
 declare resultado jsonb;
@@ -11,7 +13,7 @@ begin
   ) then raise exception 'Vecino no encontrado'; end if;
 
   select coalesce(jsonb_agg(jsonb_build_object(
-    'id', p.id, 'monto', p.monto, 'fecha', p.fecha,
+    'id', p.id, 'monto', p.monto, 'fecha', p.fecha, 'comprobante', p.comprobante,
     'anulado_en', p.anulado_en, 'motivo_anulacion', p.motivo_anulacion,
     'aplicaciones', coalesce((
       select jsonb_agg(jsonb_build_object('mes', ap.mes, 'monto', ap.monto) order by ap.mes)

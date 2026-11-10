@@ -32,7 +32,10 @@ las funciones correspondientes.
    vecinos. En instalaciones existentes, actualiza también `portal_vecinos.sql`
    para permitir consultar RUT válidos más cortos. No se modifican los RUT ya
    guardados.
-7. Abre la página publicada e inicia sesión con ese usuario. Configura la cuota
+7. Ejecuta `supabase/comprobante.sql` para exigir el número de comprobante en
+   cada pago nuevo; luego vuelve a ejecutar `historial_vecino.sql` y
+   `portal_vecinos.sql`. Los pagos anteriores quedan sin comprobante.
+8. Abre la página publicada e inicia sesión con ese usuario. Configura la cuota
    mensual para cada año necesario, registra los vecinos con su mes de inicio
    y registra los pagos.
 

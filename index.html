@@ -84,6 +84,7 @@
             <label>Vecino<select name="vecino" required></select></label>
             <label>Monto en pesos<input name="monto" type="number" min="1" max="1000000000" step="1" required></label>
             <label>Fecha de pago<input name="fecha" type="date" required></label>
+            <label>N.º de comprobante<input name="comprobante" required maxlength="30" pattern="[A-Za-z0-9][A-Za-z0-9./\-]*" autocomplete="off"></label>
             <button type="submit">Registrar pago</button>
           </form>
           <p>Se aplica a las cuotas pendientes más antiguas. Configura los años necesarios antes de aceptar pagos adelantados.</p>
@@ -94,7 +95,7 @@
           <label>Buscar vecino por nombre<input id="history-search" type="search" autocomplete="off" placeholder="Escribe un nombre"></label>
           <label>Seleccionar vecino<select id="history-neighbor"><option value="">Selecciona un vecino</option></select></label>
           <p id="history-status" aria-live="polite">Selecciona un vecino para ver sus pagos.</p>
-          <div class="table-wrap"><table><thead><tr><th>Fecha</th><th>Vecino</th><th>Monto</th><th>Aplicación</th><th>Estado</th><th>Acción</th></tr></thead><tbody id="payments"></tbody></table></div>
+          <div class="table-wrap"><table><thead><tr><th>Fecha</th><th>Comprobante</th><th>Vecino</th><th>Monto</th><th>Aplicación</th><th>Estado</th><th>Acción</th></tr></thead><tbody id="payments"></tbody></table></div>
         </section>
       </section>
       <section id="view-dues" class="view" hidden>

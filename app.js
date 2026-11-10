@@ -191,6 +191,7 @@ async function loadHistory() {
       const row = document.createElement('tr');
       const [year, month, day] = payment.fecha.split('-');
       cell(row, `${day}/${month}/${year}`);
+      cell(row, payment.comprobante || '—');
       cell(row, neighbor.nombre);
       cell(row, money.format(payment.monto));
       cell(row, payment.aplicaciones.map(item => `${item.mes.slice(5, 7)}/${item.mes.slice(0, 4)}: ${money.format(item.monto)}`).join(', '));
@@ -431,9 +432,10 @@ $('#payment-form').addEventListener('submit', event => {
   withBusy(form, async () => {
     await rpc('cuotas_registrar_pago', {
       p_vecino: Number(form.elements.vecino.value), p_monto: Number(form.elements.monto.value),
-      p_fecha: form.elements.fecha.value
+      p_fecha: form.elements.fecha.value, p_comprobante: form.elements.comprobante.value
     });
     form.elements.monto.value = '';
+    form.elements.comprobante.value = '';
     await updateAfterSave('Pago registrado.');
   });
 });
