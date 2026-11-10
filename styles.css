@@ -15,6 +15,8 @@ input, select { width: 100%; padding: 8px; border: 1px solid #aebacc; }
 button { padding: 8px 14px; border: 0; background: #245cdb; color: white; font-weight: 600; cursor: pointer; }
 button:hover { background: #174bbd; } button:disabled { opacity: .6; cursor: wait; }
 button.secondary { background: white; color: #173c70; }
+button.outline { background: #e8effa; color: #173c70; }
+button.outline:hover { background: #d7e5fa; }
 button.danger { background: #a42727; min-height: 34px; }
 a { color: #174bbd; }
 nav { display: flex; align-items: center; gap: 18px; }

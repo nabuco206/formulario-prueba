@@ -11,6 +11,7 @@ const monthNames = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Juli
 let session = null;
 let refreshPromise = null;
 let loadVersion = 0;
+let editingNeighbor = null;
 
 function showMessage(text, error = false) {
   message.textContent = text;
@@ -26,6 +27,9 @@ function setAuthenticated(authenticated) {
     loadVersion++;
     showView('dashboard');
     $('#portal-password-form').reset();
+    resetNeighborForm();
+    $('#neighbors-list').replaceChildren();
+    $('#neighbors-empty').hidden = true;
     $('#dues').replaceChildren();
     $('#payments').replaceChildren();
     $('#payment-form').elements.vecino.replaceChildren();
@@ -68,7 +72,9 @@ async function request(path, body, token) {
     throw new Error('El servidor devolvió una respuesta inesperada.');
   }
   if (!response.ok) {
-    throw new Error(data?.msg || data?.message || data?.error_description || `Error del servidor (${response.status}).`);
+    const error = new Error(data?.msg || data?.message || data?.error_description || `Error del servidor (${response.status}).`);
+    error.code = data?.code;
+    throw error;
   }
   return data;
 }
@@ -112,14 +118,51 @@ function cell(row, value) {
   return td;
 }
 
+function resetNeighborForm() {
+  editingNeighbor = null;
+  $('#neighbor-form').reset();
+  $('#neighbor-form-title').textContent = 'Agregar vecino';
+  $('#neighbor-submit').textContent = 'Guardar vecino';
+  $('#neighbor-cancel').hidden = true;
+}
+
+function editNeighbor(neighbor) {
+  editingNeighbor = { id: neighbor.id, inicio: neighbor.inicio.slice(0, 7) };
+  const form = $('#neighbor-form');
+  form.elements.nombre.value = neighbor.nombre;
+  form.elements.rut.value = neighbor.rut;
+  form.elements.inicio.value = editingNeighbor.inicio;
+  $('#neighbor-form-title').textContent = 'Modificar vecino';
+  $('#neighbor-submit').textContent = 'Guardar cambios';
+  $('#neighbor-cancel').hidden = false;
+  message.hidden = true;
+  form.elements.nombre.focus();
+}
+
 function render(data) {
   const select = $('#payment-form').elements.vecino;
   const selected = select.value;
   select.replaceChildren(new Option('Selecciona un vecino', ''));
   const names = new Map();
+  const neighborsList = $('#neighbors-list');
+  neighborsList.replaceChildren();
+  $('#neighbors-empty').hidden = data.vecinos.length > 0;
   for (const neighbor of data.vecinos) {
     names.set(neighbor.id, neighbor.nombre);
     select.add(new Option(`${neighbor.nombre} · ${neighbor.rut}`, neighbor.id));
+    const row = document.createElement('tr');
+    cell(row, neighbor.nombre);
+    cell(row, neighbor.rut);
+    cell(row, `${monthNames[Number(neighbor.inicio.slice(5, 7)) - 1]} ${neighbor.inicio.slice(0, 4)}`);
+    const action = cell(row, '');
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'outline';
+    button.textContent = '✎ Modificar';
+    button.setAttribute('aria-label', `Modificar a ${neighbor.nombre}`);
+    button.addEventListener('click', () => editNeighbor(neighbor));
+    action.append(button);
+    neighborsList.append(row);
   }
   select.value = [...select.options].some(option => option.value === selected) ? selected : '';
 
@@ -250,14 +293,35 @@ $('#logout').addEventListener('click', async () => {
 $('#neighbor-form').addEventListener('submit', event => {
   event.preventDefault();
   const form = event.currentTarget;
+  const neighbor = editingNeighbor;
+  if (neighbor && form.elements.inicio.value !== neighbor.inicio
+    && !confirm('Cambiar el mes de inicio puede modificar la deuda. Los pagos existentes no se reasignarán. ¿Continuar?')) return;
   withBusy(form, async () => {
-    await rpc('cuotas_crear_vecino', {
+    const parameters = {
       p_nombre: form.elements.nombre.value.trim(), p_rut: form.elements.rut.value.trim(),
       p_inicio: `${form.elements.inicio.value}-01`
-    });
-    form.reset();
-    await updateAfterSave('Vecino agregado.');
+    };
+    if (neighbor) {
+      try {
+        await rpc('cuotas_editar_vecino', { p_vecino: neighbor.id, ...parameters });
+      } catch (error) {
+        if (error.code === 'PGRST202') {
+          throw new Error('Para habilitar la modificación, ejecuta supabase/editar_vecinos.sql en Supabase.');
+        }
+        throw error;
+      }
+    } else {
+      await rpc('cuotas_crear_vecino', parameters);
+    }
+    resetNeighborForm();
+    await updateAfterSave(neighbor ? 'Datos del vecino modificados.' : 'Vecino agregado.');
   });
+});
+
+$('#neighbor-cancel').addEventListener('click', () => {
+  resetNeighborForm();
+  message.hidden = true;
+  $('#neighbor-form').elements.nombre.focus();
 });
 
 $('#fee-form').addEventListener('submit', event => {

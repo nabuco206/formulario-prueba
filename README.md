@@ -23,7 +23,10 @@ las funciones correspondientes.
    on conflict do nothing;
    ```
 
-4. Abre la página publicada e inicia sesión con ese usuario. Configura la cuota
+4. Después de `portal_vecinos.sql`, ejecuta `supabase/editar_vecinos.sql` para
+   habilitar la modificación de vecinos. También se debe ejecutar una vez en
+   instalaciones existentes; no elimina datos.
+5. Abre la página publicada e inicia sesión con ese usuario. Configura la cuota
    mensual para cada año necesario, registra los vecinos con su mes de inicio
    y registra los pagos.
 
@@ -62,6 +65,9 @@ a todos.
 
 ## Funcionamiento
 
+- Tesorería puede corregir nombre, RUT y mes de inicio en el listado de vecinos.
+  Cambiar el mes puede alterar la deuda y no reasigna pagos existentes. No se
+  permite fijarlo después de un mes con pagos vigentes aplicados.
 - Los importes son pesos chilenos enteros. Cada año tiene una cuota mensual
   común. No se puede modificar un monto anual si existen aplicaciones de pagos
   para ese año, incluso si esos pagos fueron anulados.

@@ -57,13 +57,24 @@
       </section>
       <section id="view-neighbors" class="view" hidden>
         <section class="card">
-          <h2>Agregar vecino</h2>
+          <h2 id="neighbor-form-title">Agregar vecino</h2>
           <form id="neighbor-form">
             <label>Nombre<input name="nombre" maxlength="100" required></label>
             <label>RUT<input name="rut" maxlength="30" required></label>
             <label>Mes de inicio de cobro<input name="inicio" type="month" min="2000-01" max="2100-12" required></label>
-            <button type="submit">Guardar vecino</button>
+            <button type="submit" id="neighbor-submit">Guardar vecino</button>
+            <button type="button" id="neighbor-cancel" class="outline" hidden>Cancelar modificación</button>
           </form>
+        </section>
+        <section class="card">
+          <h2>Vecinos registrados</h2>
+          <p id="neighbors-empty" hidden>No hay vecinos registrados.</p>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Nombre</th><th>RUT</th><th>Inicio de cobro</th><th>Acción</th></tr></thead>
+              <tbody id="neighbors-list"></tbody>
+            </table>
+          </div>
         </section>
       </section>
       <section id="view-payments" class="view" hidden>
