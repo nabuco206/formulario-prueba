@@ -90,7 +90,10 @@
         </section>
         <section class="card">
           <h2>Historial de pagos</h2>
-          <p>Incluye pagos hechos en el año seleccionado o aplicados a sus cuotas. Los pagos anulados permanecen en el historial.</p>
+          <p>Consulta todos los pagos de un vecino, incluidos los anulados.</p>
+          <label>Buscar vecino por nombre<input id="history-search" type="search" autocomplete="off" placeholder="Escribe un nombre"></label>
+          <label>Seleccionar vecino<select id="history-neighbor"><option value="">Selecciona un vecino</option></select></label>
+          <p id="history-status" aria-live="polite">Selecciona un vecino para ver sus pagos.</p>
           <div class="table-wrap"><table><thead><tr><th>Fecha</th><th>Vecino</th><th>Monto</th><th>Aplicación</th><th>Estado</th><th>Acción</th></tr></thead><tbody id="payments"></tbody></table></div>
         </section>
       </section>

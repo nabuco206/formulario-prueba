@@ -26,7 +26,9 @@ las funciones correspondientes.
 4. Después de `portal_vecinos.sql`, ejecuta `supabase/editar_vecinos.sql` para
    habilitar la modificación de vecinos. También se debe ejecutar una vez en
    instalaciones existentes; no elimina datos.
-5. Abre la página publicada e inicia sesión con ese usuario. Configura la cuota
+5. Ejecuta `supabase/historial_vecino.sql` para habilitar el historial completo
+   de pagos por vecino. También se debe ejecutar en instalaciones existentes.
+6. Abre la página publicada e inicia sesión con ese usuario. Configura la cuota
    mensual para cada año necesario, registra los vecinos con su mes de inicio
    y registra los pagos.
 
@@ -77,6 +79,7 @@ a todos.
 - Al anular un pago se conserva su historial y se liberan sus aplicaciones;
   las aplicaciones de otros pagos no se reasignan. El siguiente pago cubre
   primero las cuotas que vuelvan a quedar pendientes.
+- El historial de tesorería muestra todos los pagos del vecino seleccionado,
+  incluidos los anulados, con independencia del año seleccionado en el tablero.
 - El saldo mostrado corresponde al año completo, incluidos meses futuros.
-  Los pagos aparecen en el año de su fecha y en los años a cuyas cuotas fueron
-  aplicados. La sesión de tesorería se mantiene solo en memoria de la página.
+  La sesión de tesorería se mantiene solo en memoria de la página.

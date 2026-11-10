@@ -12,6 +12,8 @@ let session = null;
 let refreshPromise = null;
 let loadVersion = 0;
 let editingNeighbor = null;
+let neighbors = [];
+let historyVersion = 0;
 
 function showMessage(text, error = false) {
   message.textContent = text;
@@ -32,6 +34,11 @@ function setAuthenticated(authenticated) {
     $('#neighbors-empty').hidden = true;
     $('#dues').replaceChildren();
     $('#payments').replaceChildren();
+    neighbors = [];
+    historyVersion++;
+    $('#history-search').value = '';
+    $('#history-neighbor').replaceChildren(new Option('Selecciona un vecino', ''));
+    $('#history-status').textContent = 'Selecciona un vecino para ver sus pagos.';
     $('#payment-form').elements.vecino.replaceChildren();
     $('#year-info').textContent = '';
     $('#summary-neighbors').textContent = '—';
@@ -139,16 +146,72 @@ function editNeighbor(neighbor) {
   form.elements.nombre.focus();
 }
 
+function updateHistoryOptions(preserveSelection = false) {
+  const select = $('#history-neighbor');
+  const selected = preserveSelection ? select.value : '';
+  const normalize = value => value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase('es-CL');
+  const search = normalize($('#history-search').value.trim());
+  const matching = neighbors.filter(neighbor => normalize(neighbor.nombre).includes(search) || String(neighbor.id) === selected);
+  select.replaceChildren(new Option(matching.length ? 'Selecciona un vecino' : 'No hay vecinos que coincidan', ''));
+  for (const neighbor of matching) {
+    select.add(new Option(`${neighbor.nombre} · ${neighbor.rut}`, String(neighbor.id)));
+  }
+  select.value = matching.some(neighbor => String(neighbor.id) === selected) ? selected : '';
+}
+
+async function loadHistory() {
+  const selected = $('#history-neighbor').value;
+  const version = ++historyVersion;
+  const activeSession = session;
+  $('#payments').replaceChildren();
+  if (!selected || !activeSession) {
+    $('#history-status').textContent = 'Selecciona un vecino para ver sus pagos.';
+    return;
+  }
+  $('#history-status').textContent = 'Cargando pagos…';
+  try {
+    const data = await rpc('cuotas_historial_vecino', { p_vecino: Number(selected) });
+    if (version !== historyVersion || session !== activeSession) return;
+    const neighbor = neighbors.find(item => String(item.id) === selected);
+    for (const payment of data) {
+      const row = document.createElement('tr');
+      const [year, month, day] = payment.fecha.split('-');
+      cell(row, `${day}/${month}/${year}`);
+      cell(row, neighbor.nombre);
+      cell(row, money.format(payment.monto));
+      cell(row, payment.aplicaciones.map(item => `${item.mes.slice(5, 7)}/${item.mes.slice(0, 4)}: ${money.format(item.monto)}`).join(', '));
+      cell(row, payment.anulado_en ? `Anulado: ${payment.motivo_anulacion}` : 'Registrado');
+      const action = cell(row, '');
+      if (!payment.anulado_en) {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'danger';
+        button.textContent = 'Anular';
+        button.addEventListener('click', () => cancelPayment(payment.id, button));
+        action.append(button);
+      }
+      $('#payments').append(row);
+    }
+    $('#history-status').textContent = data.length ? `Pagos de ${neighbor.nombre}.` : `No hay pagos registrados para ${neighbor.nombre}.`;
+  } catch (error) {
+    if (version !== historyVersion || session !== activeSession) return;
+    $('#payments').replaceChildren();
+    $('#history-status').textContent = error.code === 'PGRST202'
+      ? 'Para habilitar el historial, ejecuta supabase/historial_vecino.sql en Supabase.'
+      : `No se pudo cargar el historial: ${error.message}`;
+  }
+}
+
 function render(data) {
   const select = $('#payment-form').elements.vecino;
   const selected = select.value;
+  const historySelected = $('#history-neighbor').value;
   select.replaceChildren(new Option('Selecciona un vecino', ''));
-  const names = new Map();
+  neighbors = data.vecinos;
   const neighborsList = $('#neighbors-list');
   neighborsList.replaceChildren();
   $('#neighbors-empty').hidden = data.vecinos.length > 0;
   for (const neighbor of data.vecinos) {
-    names.set(neighbor.id, neighbor.nombre);
     select.add(new Option(`${neighbor.nombre} · ${neighbor.rut}`, neighbor.id));
     const row = document.createElement('tr');
     cell(row, neighbor.nombre);
@@ -165,6 +228,8 @@ function render(data) {
     neighborsList.append(row);
   }
   select.value = [...select.options].some(option => option.value === selected) ? selected : '';
+  updateHistoryOptions(true);
+  if (historySelected && !$('#history-neighbor').value) loadHistory();
 
   const dues = $('#dues');
   dues.replaceChildren();
@@ -199,26 +264,6 @@ function render(data) {
     ? `Cuota mensual: ${money.format(fee.monto)}. Saldo del año completo (incluye meses futuros): ${money.format(total)}.`
     : 'No se ha configurado la cuota mensual para este año.';
 
-  const payments = $('#payments');
-  payments.replaceChildren();
-  for (const payment of data.pagos) {
-    const row = document.createElement('tr');
-    cell(row, payment.fecha);
-    cell(row, names.get(payment.vecino_id) || 'Vecino no encontrado');
-    cell(row, money.format(payment.monto));
-    cell(row, payment.aplicaciones.map(item => `${item.mes.slice(0, 7)}: ${money.format(item.monto)}`).join(', '));
-    cell(row, payment.anulado_en ? `Anulado: ${payment.motivo_anulacion}` : 'Registrado');
-    const action = cell(row, '');
-    if (!payment.anulado_en) {
-      const button = document.createElement('button');
-      button.type = 'button';
-      button.className = 'danger';
-      button.textContent = 'Anular';
-      button.addEventListener('click', () => cancelPayment(payment.id, button));
-      action.append(button);
-    }
-    payments.append(row);
-  }
 }
 
 async function load() {
@@ -244,6 +289,7 @@ async function withBusy(form, operation) {
 async function updateAfterSave(text) {
   try {
     await load();
+    if ($('#history-neighbor').value) await loadHistory();
     showMessage(text);
   } catch (error) {
     showMessage(`${text} No se pudo actualizar la pantalla: ${error.message}`, true);
@@ -274,6 +320,14 @@ $('#login-form').addEventListener('submit', event => {
 $('#treasury-menu').addEventListener('click', event => {
   const button = event.target.closest('[data-view]');
   if (button) showView(button.dataset.view);
+});
+
+$('#history-search').addEventListener('input', () => {
+  updateHistoryOptions();
+  loadHistory();
+});
+$('#history-neighbor').addEventListener('change', () => {
+  loadHistory();
 });
 
 $('#logout').addEventListener('click', async () => {
