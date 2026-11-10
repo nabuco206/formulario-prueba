@@ -28,7 +28,11 @@ las funciones correspondientes.
    instalaciones existentes; no elimina datos.
 5. Ejecuta `supabase/historial_vecino.sql` para habilitar el historial completo
    de pagos por vecino. También se debe ejecutar en instalaciones existentes.
-6. Abre la página publicada e inicia sesión con ese usuario. Configura la cuota
+6. Ejecuta `supabase/validar_rut.sql` para validar el RUT al guardar o cambiar
+   vecinos. En instalaciones existentes, actualiza también `portal_vecinos.sql`
+   para permitir consultar RUT válidos más cortos. No se modifican los RUT ya
+   guardados.
+7. Abre la página publicada e inicia sesión con ese usuario. Configura la cuota
    mensual para cada año necesario, registra los vecinos con su mes de inicio
    y registra los pagos.
 
@@ -70,6 +74,8 @@ a todos.
 - Tesorería puede corregir nombre, RUT y mes de inicio en el listado de vecinos.
   Cambiar el mes puede alterar la deuda y no reasigna pagos existentes. No se
   permite fijarlo después de un mes con pagos vigentes aplicados.
+- Al ingresar o cambiar un RUT se valida su formato y dígito verificador; la
+  validación no comprueba la identidad de la persona ni la existencia del RUT.
 - Los importes son pesos chilenos enteros. Cada año tiene una cuota mensual
   común. No se puede modificar un monto anual si existen aplicaciones de pagos
   para ese año, incluso si esos pagos fueron anulados.

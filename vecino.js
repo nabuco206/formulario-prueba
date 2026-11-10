@@ -125,7 +125,7 @@ $('#login-form').addEventListener('submit', event => {
   const button = form.querySelector('button');
   const rut = form.elements.rut.value.trim().toUpperCase().replace(/[^0-9K]/g, '');
   const password = form.elements.password.value;
-  if (!/^[0-9]{7,8}[0-9K]$/.test(rut)) {
+  if (!/^[0-9]{1,8}[0-9K]$/.test(rut)) {
     showMessage('Ingresa un RUT válido.', true);
     return;
   }

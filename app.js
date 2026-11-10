@@ -125,6 +125,20 @@ function cell(row, value) {
   return td;
 }
 
+function validRut(value) {
+  const formatted = value.toUpperCase().replace(/\s/g, '');
+  if (!/^(\d{1,8}|\d{1,3}\.\d{3}|\d{1,2}\.\d{3}\.\d{3})-?[\dK]$/.test(formatted)) return false;
+  const normalized = formatted.replace(/[.-]/g, '');
+  const body = normalized.slice(0, -1);
+  if (Number(body) === 0) return false;
+  let sum = 0;
+  for (let i = 0; i < body.length; i++) {
+    sum += Number(body[body.length - 1 - i]) * (2 + i % 6);
+  }
+  const digit = (11 - sum % 11) % 11;
+  return normalized.at(-1) === (digit === 10 ? 'K' : String(digit));
+}
+
 function resetNeighborForm() {
   editingNeighbor = null;
   $('#neighbor-form').reset();
@@ -347,6 +361,11 @@ $('#logout').addEventListener('click', async () => {
 $('#neighbor-form').addEventListener('submit', event => {
   event.preventDefault();
   const form = event.currentTarget;
+  if (!validRut(form.elements.rut.value)) {
+    showMessage('Ingresa un RUT válido con su dígito verificador.', true);
+    form.elements.rut.focus();
+    return;
+  }
   const neighbor = editingNeighbor;
   if (neighbor && form.elements.inicio.value !== neighbor.inicio
     && !confirm('Cambiar el mes de inicio puede modificar la deuda. Los pagos existentes no se reasignarán. ¿Continuar?')) return;

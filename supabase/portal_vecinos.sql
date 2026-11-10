@@ -83,7 +83,7 @@ begin
     raise exception 'Año inválido';
   end if;
   v_rut := regexp_replace(upper(coalesce(p_rut, '')), '[^0-9K]', '', 'g');
-  if v_rut !~ '^[0-9]{7,8}[0-9K]$' then return jsonb_build_object('error', 'RUT o clave incorrectos.'); end if;
+  if v_rut !~ '^[0-9]{1,8}[0-9K]$' then return jsonb_build_object('error', 'RUT o clave incorrectos.'); end if;
 
   select v.id, v.nombre, v.inicio into v_vecino_id, v_nombre, v_inicio
     from cuotas_privado.vecinos v
