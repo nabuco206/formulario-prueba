@@ -5,6 +5,7 @@ const SUPABASE_KEY = 'sb_publishable_4xGqOhRfPpMpyAUbgjuOUQ_QxYwdWo1';
 const $ = (selector) => document.querySelector(selector);
 const message = $('#message');
 const yearInput = $('#year');
+const yearTableInput = $('#year-table');
 const money = new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP', maximumFractionDigits: 0 });
 const monthNames = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
 let session = null;
@@ -23,11 +24,28 @@ function setAuthenticated(authenticated) {
   $('#logout').hidden = !authenticated;
   if (!authenticated) {
     loadVersion++;
+    showView('dashboard');
     $('#portal-password-form').reset();
     $('#dues').replaceChildren();
     $('#payments').replaceChildren();
     $('#payment-form').elements.vecino.replaceChildren();
     $('#year-info').textContent = '';
+    $('#summary-neighbors').textContent = '—';
+    $('#summary-paid').textContent = '—';
+    $('#summary-debt').textContent = '—';
+    $('#summary-info').textContent = '';
+  }
+}
+
+function showView(name) {
+  for (const view of document.querySelectorAll('.view')) {
+    view.hidden = view.id !== `view-${name}`;
+  }
+  for (const button of document.querySelectorAll('#treasury-menu [data-view]')) {
+    const active = button.dataset.view === name;
+    button.classList.toggle('active', active);
+    if (active) button.setAttribute('aria-current', 'page');
+    else button.removeAttribute('aria-current');
   }
 }
 
@@ -108,11 +126,15 @@ function render(data) {
   const dues = $('#dues');
   dues.replaceChildren();
   let total = 0;
+  let paidTotal = 0;
+  let unconfigured = false;
   for (const due of data.cuotas) {
     const neighbor = data.vecinos.find(item => item.id === due.vecino_id);
     const row = document.createElement('tr');
-    const balance = due.monto === null ? null : due.monto - due.pagado;
+    const balance = due.monto === null ? null : Math.max(due.monto - due.pagado, 0);
     if (balance !== null) total += balance;
+    else unconfigured = true;
+    paidTotal += Number(due.pagado) || 0;
     cell(row, neighbor.nombre);
     cell(row, neighbor.rut);
     cell(row, monthNames[Number(due.mes.slice(5, 7)) - 1]);
@@ -123,6 +145,13 @@ function render(data) {
     dues.append(row);
   }
   const fee = data.aranceles.find(item => item.anio === Number(yearInput.value));
+  $('#summary-neighbors').textContent = String(data.vecinos.length);
+  $('#summary-paid').textContent = money.format(paidTotal);
+  $('#summary-debt').textContent = money.format(total);
+  $('#summary-info').textContent = unconfigured
+    ? `Resumen de ${yearInput.value}. Hay cuotas sin monto configurado; la deuda mostrada no las incluye.`
+    : `Resumen de ${yearInput.value}. Los montos pagados corresponden a cuotas aplicadas a ese año.`;
+  yearTableInput.value = yearInput.value;
   $('#year-info').textContent = fee
     ? `Cuota mensual: ${money.format(fee.monto)}. Saldo del año completo (incluye meses futuros): ${money.format(total)}.`
     : 'No se ha configurado la cuota mensual para este año.';
@@ -194,8 +223,14 @@ $('#login-form').addEventListener('submit', event => {
       throw error;
     }
     setAuthenticated(true);
+    showView('dashboard');
     showMessage('Sesión iniciada.');
   });
+});
+
+$('#treasury-menu').addEventListener('click', event => {
+  const button = event.target.closest('[data-view]');
+  if (button) showView(button.dataset.view);
 });
 
 $('#logout').addEventListener('click', async () => {
@@ -231,6 +266,7 @@ $('#fee-form').addEventListener('submit', event => {
   withBusy(form, async () => {
     await rpc('cuotas_guardar_arancel', { p_anio: Number(form.elements.anio.value), p_monto: Number(form.elements.monto.value) });
     yearInput.value = form.elements.anio.value;
+    yearTableInput.value = yearInput.value;
     await updateAfterSave('Monto anual guardado.');
   });
 });
@@ -280,10 +316,16 @@ async function cancelPayment(id, button) {
   }
 }
 
-yearInput.addEventListener('change', () => {
+function changeYear(value) {
+  yearInput.value = value;
+  yearTableInput.value = value;
   load().catch(error => showMessage(error.message, true));
-});
+}
+
+yearInput.addEventListener('change', () => changeYear(yearInput.value));
+yearTableInput.addEventListener('change', () => changeYear(yearTableInput.value));
 const today = new Date();
 yearInput.value = today.getFullYear();
+yearTableInput.value = today.getFullYear();
 $('#fee-form').elements.anio.value = today.getFullYear();
 $('#payment-form').elements.fecha.value = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;

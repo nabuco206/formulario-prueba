@@ -22,7 +22,40 @@
       </form>
     </section>
     <div id="app" hidden>
-      <div class="grid">
+      <nav id="treasury-menu" aria-label="Menú de tesorería">
+        <button type="button" class="menu-link active" data-view="dashboard" aria-current="page">Inicio</button>
+        <button type="button" class="menu-link" data-view="neighbors">Vecinos</button>
+        <button type="button" class="menu-link" data-view="payments">Pagos</button>
+        <button type="button" class="menu-link" data-view="dues">Cuotas</button>
+        <button type="button" class="menu-link" data-view="access">Acceso vecinos</button>
+      </nav>
+      <section id="view-dashboard" class="view">
+        <section class="card">
+          <div class="heading">
+            <div><h2>Resumen de tesorería</h2><p>Estado del año seleccionado</p></div>
+            <label>Año<input id="year" type="number" min="2000" max="2100" required></label>
+          </div>
+          <div class="summary-grid">
+            <article class="summary-card">
+              <span>Vecinos registrados</span>
+              <strong id="summary-neighbors">—</strong>
+              <small>En el registro de tesorería</small>
+            </article>
+            <article class="summary-card">
+              <span>Cuotas pagadas</span>
+              <strong id="summary-paid">—</strong>
+              <small>Aplicado a cuotas del año</small>
+            </article>
+            <article class="summary-card">
+              <span>Deuda pendiente</span>
+              <strong id="summary-debt">—</strong>
+              <small>Saldo del año completo, incluidos meses futuros</small>
+            </article>
+          </div>
+          <p id="summary-info" aria-live="polite"></p>
+        </section>
+      </section>
+      <section id="view-neighbors" class="view" hidden>
         <section class="card">
           <h2>Agregar vecino</h2>
           <form id="neighbor-form">
@@ -32,25 +65,8 @@
             <button type="submit">Guardar vecino</button>
           </form>
         </section>
-        <section class="card">
-          <h2>Cuota mensual por año</h2>
-          <form id="fee-form">
-            <label>Año<input name="anio" type="number" min="2000" max="2100" required></label>
-            <label>Monto mensual en pesos<input name="monto" type="number" min="1" max="1000000000" step="1" required></label>
-            <button type="submit">Guardar monto</button>
-          </form>
-          <p>El monto de un año no se puede cambiar después de registrar pagos para ese año.</p>
-        </section>
-        <section class="card">
-          <h2>Clave común de vecinos</h2>
-          <p>Todos los vecinos usarán esta clave junto con su RUT. La clave anterior dejará de servir para nuevos ingresos.</p>
-          <form id="portal-password-form">
-            <label>Nueva clave común<input name="password" type="password" minlength="8" maxlength="72" autocomplete="new-password" required></label>
-            <label>Repetir nueva clave<input name="confirmation" type="password" minlength="8" maxlength="72" autocomplete="new-password" required></label>
-            <button type="submit">Cambiar clave común</button>
-          </form>
-          <p>Comunica la nueva clave a los vecinos. Sus cuentas de tesorería no cambian.</p>
-        </section>
+      </section>
+      <section id="view-payments" class="view" hidden>
         <section class="card">
           <h2>Registrar pago</h2>
           <form id="payment-form">
@@ -61,16 +77,39 @@
           </form>
           <p>Se aplica a las cuotas pendientes más antiguas. Configura los años necesarios antes de aceptar pagos adelantados.</p>
         </section>
-      </div>
-      <section class="card">
-        <div class="heading"><h2>Estado por año</h2><label>Año<input id="year" type="number" min="2000" max="2100" required></label></div>
-        <p id="year-info"></p>
-        <div class="table-wrap"><table><thead><tr><th>Vecino</th><th>RUT</th><th>Mes</th><th>Cuota</th><th>Pagado</th><th>Saldo</th><th>Estado</th></tr></thead><tbody id="dues"></tbody></table></div>
+        <section class="card">
+          <h2>Historial de pagos</h2>
+          <p>Incluye pagos hechos en el año seleccionado o aplicados a sus cuotas. Los pagos anulados permanecen en el historial.</p>
+          <div class="table-wrap"><table><thead><tr><th>Fecha</th><th>Vecino</th><th>Monto</th><th>Aplicación</th><th>Estado</th><th>Acción</th></tr></thead><tbody id="payments"></tbody></table></div>
+        </section>
       </section>
-      <section class="card">
-        <h2>Historial de pagos</h2>
-        <p>Incluye pagos hechos en el año seleccionado o aplicados a sus cuotas. Los pagos anulados permanecen en el historial.</p>
-        <div class="table-wrap"><table><thead><tr><th>Fecha</th><th>Vecino</th><th>Monto</th><th>Aplicación</th><th>Estado</th><th>Acción</th></tr></thead><tbody id="payments"></tbody></table></div>
+      <section id="view-dues" class="view" hidden>
+        <section class="card">
+          <h2>Cuota mensual por año</h2>
+          <form id="fee-form">
+            <label>Año<input name="anio" type="number" min="2000" max="2100" required></label>
+            <label>Monto mensual en pesos<input name="monto" type="number" min="1" max="1000000000" step="1" required></label>
+            <button type="submit">Guardar monto</button>
+          </form>
+          <p>El monto de un año no se puede cambiar después de registrar pagos para ese año.</p>
+        </section>
+        <section class="card">
+          <div class="heading"><h2>Estado por año</h2><label>Año<input id="year-table" type="number" min="2000" max="2100" required></label></div>
+          <p id="year-info"></p>
+          <div class="table-wrap"><table><thead><tr><th>Vecino</th><th>RUT</th><th>Mes</th><th>Cuota</th><th>Pagado</th><th>Saldo</th><th>Estado</th></tr></thead><tbody id="dues"></tbody></table></div>
+        </section>
+      </section>
+      <section id="view-access" class="view" hidden>
+        <section class="card">
+          <h2>Clave común de vecinos</h2>
+          <p>Todos los vecinos usarán esta clave junto con su RUT. La clave anterior dejará de servir para nuevos ingresos.</p>
+          <form id="portal-password-form">
+            <label>Nueva clave común<input name="password" type="password" minlength="8" maxlength="72" autocomplete="new-password" required></label>
+            <label>Repetir nueva clave<input name="confirmation" type="password" minlength="8" maxlength="72" autocomplete="new-password" required></label>
+            <button type="submit">Cambiar clave común</button>
+          </form>
+          <p>Comunica la nueva clave a los vecinos. Sus cuentas de tesorería no cambian.</p>
+        </section>
       </section>
     </div>
   </main>

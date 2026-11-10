@@ -19,6 +19,15 @@ button.danger { background: #a42727; min-height: 34px; }
 a { color: #174bbd; }
 nav { display: flex; align-items: center; gap: 18px; }
 nav a { color: white; }
+#treasury-menu { gap: 8px; overflow-x: auto; margin: 0 0 20px; padding: 6px; background: white; border: 1px solid #e1e7f0; border-radius: 10px; }
+#treasury-menu .menu-link { flex: 0 0 auto; color: #33415c; background: transparent; }
+#treasury-menu .menu-link:hover, #treasury-menu .menu-link.active { color: #173c70; background: #e8effa; }
+.view { min-width: 0; }
+.summary-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr)); gap: 14px; margin-top: 20px; }
+.summary-card { display: grid; gap: 8px; min-height: 132px; padding: 18px; border: 1px solid #e1e7f0; border-radius: 10px; background: #f8faff; }
+.summary-card span { color: #566176; font-weight: 650; }
+.summary-card strong { color: #173c70; font-size: clamp(1.5rem, 3vw, 2rem); overflow-wrap: anywhere; }
+.summary-card small { color: #66738a; line-height: 1.4; }
 .status { font-size: 1.15rem; font-weight: 750; color: #21643b; }
 .status.overdue { color: #a42620; }
 .history-heading { margin-top: 28px; }
@@ -29,4 +38,8 @@ input:focus-visible, select:focus-visible, button:focus-visible { outline: 3px s
 th, td { padding: 10px; border-bottom: 1px solid #e1e7f0; white-space: nowrap; } th { background: #f6f8fb; }
 #message { padding: 12px; border-radius: 6px; background: #e8f5ed; color: #21643b; }
 #message.error { background: #fff0ef; color: #a42620; }
+@media (max-width: 600px) {
+  main { padding: 16px; }
+  #treasury-menu { margin-right: -4px; }
+}
 [hidden] { display: none !important; }
