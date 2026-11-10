@@ -23,6 +23,7 @@ function setAuthenticated(authenticated) {
   $('#logout').hidden = !authenticated;
   if (!authenticated) {
     loadVersion++;
+    $('#portal-password-form').reset();
     $('#dues').replaceChildren();
     $('#payments').replaceChildren();
     $('#payment-form').elements.vecino.replaceChildren();
@@ -39,7 +40,7 @@ async function request(path, body, token) {
       method: 'POST', headers, body: JSON.stringify(body)
     });
   } catch {
-    throw new Error('No se pudo confirmar la operación. Revisa la conexión y consulta el historial antes de volver a registrar un pago.');
+    throw new Error('No se pudo confirmar la operación. Revisa la conexión y verifica el resultado antes de intentarlo nuevamente.');
   }
   const text = await response.text();
   let data;
@@ -231,6 +232,23 @@ $('#fee-form').addEventListener('submit', event => {
     await rpc('cuotas_guardar_arancel', { p_anio: Number(form.elements.anio.value), p_monto: Number(form.elements.monto.value) });
     yearInput.value = form.elements.anio.value;
     await updateAfterSave('Monto anual guardado.');
+  });
+});
+
+$('#portal-password-form').addEventListener('submit', event => {
+  event.preventDefault();
+  const form = event.currentTarget;
+  withBusy(form, async () => {
+    const password = form.elements.password.value;
+    if (password !== form.elements.confirmation.value) {
+      throw new Error('Las claves no coinciden.');
+    }
+    if (new TextEncoder().encode(password).length > 72) {
+      throw new Error('La clave es demasiado larga. Usa un máximo de 72 bytes.');
+    }
+    await rpc('cuotas_cambiar_clave_portal', { p_clave: password });
+    form.reset();
+    showMessage('Clave común cambiada. Comunícala a los vecinos.');
   });
 });
 

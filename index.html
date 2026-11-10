@@ -42,6 +42,16 @@
           <p>El monto de un año no se puede cambiar después de registrar pagos para ese año.</p>
         </section>
         <section class="card">
+          <h2>Clave común de vecinos</h2>
+          <p>Todos los vecinos usarán esta clave junto con su RUT. La clave anterior dejará de servir para nuevos ingresos.</p>
+          <form id="portal-password-form">
+            <label>Nueva clave común<input name="password" type="password" minlength="8" maxlength="72" autocomplete="new-password" required></label>
+            <label>Repetir nueva clave<input name="confirmation" type="password" minlength="8" maxlength="72" autocomplete="new-password" required></label>
+            <button type="submit">Cambiar clave común</button>
+          </form>
+          <p>Comunica la nueva clave a los vecinos. Sus cuentas de tesorería no cambian.</p>
+        </section>
+        <section class="card">
           <h2>Registrar pago</h2>
           <form id="payment-form">
             <label>Vecino<select name="vecino" required></select></label>

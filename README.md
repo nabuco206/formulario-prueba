@@ -1,8 +1,9 @@
 # Control de cuotas
 
-Aplicación para la tesorería de una junta de vecinos. Se accede con usuarios de
-Supabase Auth autorizados expresamente. Los datos se guardan en tablas privadas
-y solo se accede a ellos mediante las funciones autorizadas.
+Aplicación para la tesorería de una junta de vecinos. Tesorería accede con
+usuarios de Supabase Auth autorizados; los vecinos consultan con su RUT y una
+clave común. Los datos se guardan en tablas privadas y se accede a ellos mediante
+las funciones correspondientes.
 
 ## Instalación inicial
 
@@ -31,26 +32,33 @@ desde el SQL Editor. No expongas contraseñas ni claves `service_role` o secreta
 Revisa las políticas de la antigua tabla `tbl_personas` por separado: este
 script no las modifica.
 
-## Acceso privado para vecinos
+## Acceso para vecinos con clave común
 
-1. Ejecuta una sola vez `supabase/portal_vecinos.sql` en SQL Editor después de
-   instalar `cuotas.sql`. Añade el índice RUT normalizado y una función que
-   solo devuelve los pagos del usuario autenticado cuyo RUT coincide con su
-   inicio de sesión.
-2. Para cada vecino, crea un usuario en **Authentication > Users > Add user**.
-   Usa como correo sintético `rut` seguido del RUT en mayúsculas sin puntos,
-   guion ni espacios, seguido de `@socios.invalid`. Por ejemplo, el RUT
-   `12.345.678-K` se registra como `rut12345678k@socios.invalid`. Activa la
-   confirmación automática y asigna una clave personal al vecino.
-3. En `vecinos.html`, el vecino ingresa su RUT normal (con o sin puntos y guion)
-   y la clave que le entregó la directiva. La aplicación normaliza el RUT para
-   iniciar sesión. No es posible restablecer estas claves por correo: la
-   directiva debe restablecerlas desde Authentication.
+1. Ejecuta `supabase/portal_vecinos.sql` en SQL Editor después de `cuotas.sql`.
+   Si ya estaba instalado el portal anterior, vuelve a ejecutar este archivo:
+   reemplaza la función anterior y los accesos con cuentas individuales dejan
+   de funcionar. Los pagos y vecinos registrados se conservan.
+   El script requiere `pgcrypto` en el esquema `extensions` de Supabase.
+2. Publica el sitio actualizado. Una persona autorizada de tesorería debe
+   iniciar sesión y definir la primera clave en **Clave común de vecinos**.
+   Después puede cambiarla cuando quiera desde el mismo lugar y comunicarla por
+   el canal que elija. Solo tesorería puede cambiar la clave.
+3. Cada vecino registrado ingresa su RUT y esa clave; no necesita una cuenta
+   individual ni códigos. La clave se guarda como hash en la base de datos y
+   permanece solo en la memoria de la página mientras se consulta.
 
-El correo sintético no recibe mensajes. Nunca uses esta modalidad para contraseñas
-reutilizadas. La directiva debe entregar cada clave en privado y no compartir el
-RUT ni los pagos de un vecino con otra persona. El RUT por sí solo no permite
-consultar información.
+Al cambiar la clave, la anterior deja de servir también para nuevas consultas
+de páginas ya abiertas; los datos que ya están en pantalla siguen visibles
+hasta cerrar la sesión o la página. Después de 20 claves incorrectas desde una
+misma dirección en 15 minutos, se bloquean temporalmente las consultas desde
+esa dirección. Este límite depende de que Supabase proporcione la dirección
+del cliente en `cf-connecting-ip`; configura también límites de acceso externos
+si el despliegue no proporciona una dirección fiable.
+
+No uses una contraseña que proteja otras cuentas. Cualquier persona que conozca
+la clave y el RUT de otro vecino puede consultar sus pagos y deudas; no hay
+privacidad entre vecinos. Si se divulga la clave, cámbiala y comunica la nueva
+a todos.
 
 ## Funcionamiento
 
@@ -65,4 +73,4 @@ consultar información.
   primero las cuotas que vuelvan a quedar pendientes.
 - El saldo mostrado corresponde al año completo, incluidos meses futuros.
   Los pagos aparecen en el año de su fecha y en los años a cuyas cuotas fueron
-  aplicados. Cada sesión se mantiene solo en memoria de la página.
+  aplicados. La sesión de tesorería se mantiene solo en memoria de la página.

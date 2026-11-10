@@ -8,7 +8,6 @@ const yearSelect = $('#year');
 const money = new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP', maximumFractionDigits: 0 });
 const monthNames = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
 let session = null;
-let refreshPromise = null;
 let requestVersion = 0;
 
 function showMessage(text, error = false) {
@@ -31,12 +30,11 @@ function signedOut() {
   yearSelect.replaceChildren();
 }
 
-async function request(path, body, token) {
+async function request(path, body) {
   const headers = { apikey: SUPABASE_KEY, 'Content-Type': 'application/json' };
-  if (token) headers.Authorization = `Bearer ${token}`;
   let response;
   try {
-    response = await fetch(`${SUPABASE_URL}${path}`, { method: 'POST', headers, body: JSON.stringify(body) });
+    response = await fetch(`${SUPABASE_URL}${path}`, { method: 'POST', headers, body: JSON.stringify(body), cache: 'no-store' });
   } catch {
     throw new Error('No se pudo confirmar la operación. Revisa tu conexión.');
   }
@@ -55,35 +53,17 @@ async function request(path, body, token) {
   return data;
 }
 
-function saveSession(data) {
-  if (!data?.access_token || !data?.refresh_token || !data?.expires_in) throw new Error('No se pudo iniciar sesión.');
-  session = { access: data.access_token, refresh: data.refresh_token, expires: Date.now() + data.expires_in * 1000 };
-}
-
-async function accessToken() {
-  if (!session) throw new Error('Inicia sesión nuevamente.');
-  if (Date.now() < session.expires - 60000) return session.access;
-  if (!refreshPromise) {
-    const previous = session;
-    refreshPromise = request('/auth/v1/token?grant_type=refresh_token', { refresh_token: previous.refresh })
-      .then(data => {
-        if (session !== previous) throw new Error('La sesión terminó.');
-        saveSession(data);
-        return session.access;
-      })
-      .catch(() => {
-        signedOut();
-        throw new Error('La sesión venció. Ingresa nuevamente.');
-      })
-      .finally(() => { refreshPromise = null; });
-  }
-  return refreshPromise;
-}
-
 async function loadYear(year, expectedSession) {
   const version = ++requestVersion;
-  const data = await request('/rest/v1/rpc/vecino_mis_cuotas', { p_anio: year }, await accessToken());
+  const data = await request('/rest/v1/rpc/vecino_mis_cuotas', {
+    p_anio: year, p_rut: expectedSession.rut, p_clave: expectedSession.password
+  });
   if (version !== requestVersion || session !== expectedSession) return;
+  if (data?.error) {
+    const error = new Error(data.error);
+    error.code = data.codigo;
+    throw error;
+  }
   const currentYear = Number(data.anio_actual);
   yearSelect.replaceChildren();
   for (let yearOption = Number(data.anio_inicio); yearOption <= currentYear; yearOption++) {
@@ -152,12 +132,8 @@ $('#login-form').addEventListener('submit', event => {
   button.disabled = true;
   message.hidden = true;
   (async () => {
-    let authenticated = false;
     try {
-      const email = `rut${rut}@socios.invalid`;
-      const data = await request('/auth/v1/token?grant_type=password', { email, password });
-      saveSession(data);
-      authenticated = true;
+      session = { rut, password };
       form.elements.password.value = '';
       const activeSession = session;
       await loadYear(new Date().getFullYear(), activeSession);
@@ -166,7 +142,7 @@ $('#login-form').addEventListener('submit', event => {
       $('#account').hidden = false;
       $('#logout').hidden = false;
     } catch (error) {
-      showMessage(!authenticated && error.status ? 'RUT o clave incorrectos.' : error.message, true);
+      showMessage(error.message, true);
       if (session) signedOut();
     } finally {
       button.disabled = false;
@@ -174,21 +150,16 @@ $('#login-form').addEventListener('submit', event => {
   })();
 });
 
-$('#logout').addEventListener('click', async () => {
-  const previous = session;
+$('#logout').addEventListener('click', () => {
   signedOut();
-  message.hidden = true;
-  if (!previous) return;
-  try {
-    await request('/auth/v1/logout', {}, previous.access);
-    showMessage('Sesión cerrada.');
-  } catch (error) {
-    showMessage(`La sesión se cerró en esta página, pero no se pudo cerrar en el servidor: ${error.message}`, true);
-  }
+  showMessage('Sesión cerrada.');
 });
 
 yearSelect.addEventListener('change', () => {
   if (!session) return;
   const activeSession = session;
-  loadYear(Number(yearSelect.value), activeSession).catch(error => showMessage(error.message, true));
+  loadYear(Number(yearSelect.value), activeSession).catch(error => {
+    if (error.code === 'credenciales') signedOut();
+    showMessage(error.message, true);
+  });
 });

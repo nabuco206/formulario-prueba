@@ -9,20 +9,20 @@
 </head>
 <body>
   <header>
-    <div><h1>Mis cuotas</h1><p>Consulta privada para vecinos</p></div>
+    <div><h1>Mis cuotas</h1><p>Consulta para vecinos</p></div>
     <nav><a href="./">Tesorería</a><button id="logout" class="secondary" hidden>Cerrar sesión</button></nav>
   </header>
   <main>
     <p id="message" role="status" aria-live="polite" hidden></p>
     <section id="login-section" class="card">
       <h2>Consultar mis pagos</h2>
-      <p>Ingresa tu RUT y la clave personal que te entregó la directiva.</p>
+      <p>Ingresa tu RUT y la clave común que te entregó la directiva.</p>
       <form id="login-form">
         <label>RUT<input name="rut" type="text" autocomplete="username" maxlength="30" required></label>
-        <label>Clave personal<input name="password" type="password" autocomplete="current-password" required></label>
+        <label>Clave común<input name="password" type="password" autocomplete="current-password" required></label>
         <button type="submit">Ingresar</button>
       </form>
-      <p>Si no tienes clave o necesitas restablecerla, comunícate con la directiva.</p>
+      <p>Si no conoces la clave, comunícate con la directiva.</p>
     </section>
     <section id="account" class="card" hidden>
       <h2 id="welcome"></h2>
